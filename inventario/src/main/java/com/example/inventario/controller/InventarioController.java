@@ -1,10 +1,12 @@
 package com.example.inventario.controller;
 
+import com.example.inventario.dto.ProductoDTO;
 import com.example.inventario.model.Inventario;
 import com.example.inventario.repository.InventarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -14,6 +16,8 @@ import java.util.List;
 public class InventarioController {
 
     private final InventarioRepository inventarioRepository;
+    private final RestTemplate restTemplate;
+    private final String PRODUCTO_API_URL = "http://localhost:8081/api/productos";
 
     @GetMapping
     public List<Inventario> getAll() {
@@ -29,6 +33,12 @@ public class InventarioController {
 
     @PutMapping("/{productoId}/comprar")
     public ResponseEntity<?> comprarProducto(@PathVariable Long productoId, @RequestParam int cantidad) {
+        try {
+            restTemplate.getForObject(PRODUCTO_API_URL + "/" + productoId, ProductoDTO.class);
+        } catch (Exception e) {
+            return ResponseEntity.status(502).body("No se pudo validar el producto: " + e.getMessage());
+        }
+
         Inventario inventario = inventarioRepository.findByProductoId(productoId);
         if (inventario == null) return ResponseEntity.notFound().build();
         if (inventario.getCantidad() < cantidad)
@@ -37,12 +47,22 @@ public class InventarioController {
         inventario.setCantidad(inventario.getCantidad() - cantidad);
         inventarioRepository.save(inventario);
 
-        System.out.println("Inventario actualizado: " + inventario.getCantidad());
+        System.out.println("Inventario actualizado para producto " + productoId + ": " + inventario.getCantidad());
         return ResponseEntity.ok(inventario);
     }
 
+
     @PostMapping
-    public Inventario crearInventario(@RequestBody Inventario inventario) {
-        return inventarioRepository.save(inventario);
+    public ResponseEntity<?> crearInventario(@RequestBody Inventario inventario) {
+
+        try{
+            ProductoDTO producto = restTemplate.getForObject(PRODUCTO_API_URL + "/" + inventario.getProductoId(), ProductoDTO.class);
+            if (producto == null) return ResponseEntity.badRequest().body("El producto no existe");
+
+        }catch(Exception e){
+            return ResponseEntity.status(502).body("No se puede validar el producto: "+e.getMessage());
+        }
+
+        return ResponseEntity.ok(inventarioRepository.save(inventario));
     }
 }
