@@ -8,7 +8,7 @@ services:
       - "8081:8081"
     container_name: productos-api-v2
     networks:
-      - micro-net
+      - linktic-network
 
   inventario:
     build:
@@ -21,7 +21,24 @@ services:
     environment:
       - PRODUCTOS_API=http://productos:8081
     networks:
-      - micro-net
+      - linktic-network
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    container_name: sqlserver
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=Admin1002
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    networks:
+      - linktic-network
+
+volumes:
+  sqlserver_data:
 
 networks:
-  micro-net:
+  linktic-network:
