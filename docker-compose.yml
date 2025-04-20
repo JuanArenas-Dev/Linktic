@@ -1,0 +1,27 @@
+version: "3.9"
+
+services:
+  productos:
+    build:
+      context: ./productos
+    ports:
+      - "8081:8081"
+    container_name: productos-api-v2
+    networks:
+      - micro-net
+
+  inventario:
+    build:
+      context: ./inventario
+    ports:
+      - "8082:8082"
+    container_name: inventario-api-v2
+    depends_on:
+      - productos
+    environment:
+      - PRODUCTOS_API=http://productos:8081
+    networks:
+      - micro-net
+
+networks:
+  micro-net:
